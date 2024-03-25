@@ -1,13 +1,13 @@
 // Lookup looks up IP addresses concurrently. Hosts are supplied as STDIN stream.
-// Adapted from https://youtu.be/woCg2zaIVzQ
+// Adapted from https://youtu.be/woCg2zaIVzQ.
 package main
 
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"net"
 	"os"
+	"strings"
 	"sync"
 )
 
@@ -29,7 +29,8 @@ func main() {
 			hosts <- input.Text()
 		}
 		if err := input.Err(); err != nil {
-			log.Fatal(err)
+			fmt.Fprintf(os.Stderr, "lookup: %v\n", err)
+			os.Exit(1)
 		}
 		close(hosts)
 		wg.Done()
@@ -51,7 +52,11 @@ func main() {
 		close(lookups)
 	}()
 
-	for l := range lookups {
-		fmt.Println(l.host, l.addrs)
+	for lookup := range lookups {
+		if lookup.err != nil {
+			fmt.Fprintf(os.Stderr, "lookup: %v\n", lookup.err)
+		} else {
+			fmt.Printf("%s: %s\n", lookup.host, strings.Join(lookup.addrs, ", "))
+		}
 	}
 }
