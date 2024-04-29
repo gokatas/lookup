@@ -22,6 +22,7 @@ func main() {
 	lookups := make(chan lookup)
 	var wg sync.WaitGroup
 
+	// Read lines from stdin and stuff them down the hosts channel.
 	wg.Add(1)
 	go func() {
 		input := bufio.NewScanner(os.Stdin)
@@ -36,6 +37,8 @@ func main() {
 		wg.Done()
 	}()
 
+	// Spin up 1000 goroutines doing lookups on lines coming out of the
+	// hosts channel and stuffing the results down the lookups channel.
 	for i := 0; i < 1000; i++ {
 		wg.Add(1)
 		go func() {
@@ -47,11 +50,13 @@ func main() {
 		}()
 	}
 
+	// Wait until stdin is closed and all lookups are done.
 	go func() {
 		wg.Wait()
 		close(lookups)
 	}()
 
+	// Print errors on stderr and lookups on stdout.
 	for lookup := range lookups {
 		if lookup.err != nil {
 			fmt.Fprintf(os.Stderr, "lookup: %v\n", lookup.err)
